@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NoteCard } from '@/components/NoteCard';
 import { UploadModal } from '@/components/UploadModal';
+import { PDFViewerModal } from '@/components/PDFViewerModal';
 import { Background3D } from '@/components/Background3D';
 import { Plus, Search, LogOut, User, ArrowLeft } from 'lucide-react';
 import { API_BASE_URL, API_ENDPOINTS } from '@/lib/api';
@@ -18,6 +19,7 @@ interface Note {
   department: string;
   semester: string;
   user_name: string;
+  user_id: number;
   file_name: string;
   created_at: string;
 }
@@ -35,6 +37,9 @@ export default function Dashboard() {
   const [selectedSemester, setSelectedSemester] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [likedNotes, setLikedNotes] = useState<Record<string, boolean>>({});
+  const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
+  const [currentPdfFile, setCurrentPdfFile] = useState('');
+  const [currentPdfUrl, setCurrentPdfUrl] = useState('');
 
   // Check authentication on component mount
   React.useEffect(() => {
@@ -248,26 +253,154 @@ export default function Dashboard() {
 
   const handleDownload = async (fileName: string) => {
     try {
-      // Create a download link for the file from Supabase storage
-      const downloadUrl = `${API_BASE_URL}${API_ENDPOINTS.DOWNLOAD_NOTE}`.replace(':fileName', fileName);
-      
+      const encodedFileName = encodeURIComponent(fileName);
+      const downloadUrl = `${API_BASE_URL}${API_ENDPOINTS.DOWNLOAD_NOTE}`.replace(':fileName', encodedFileName);
+
+      console.log('Download API URL:', downloadUrl);
+
+      // Get the public download URL from backend
+      const apiResponse = await fetch(downloadUrl);
+      console.log('API Response status:', apiResponse.status);
+
+      if (!apiResponse.ok) {
+        const errorText = await apiResponse.text();
+        console.error('API Response error:', errorText);
+        throw new Error(`Failed to get download URL: ${apiResponse.status} ${apiResponse.statusText}`);
+      }
+
+      const data = await apiResponse.json();
+      console.log('Download URL received:', data.downloadUrl);
+
+      // Now fetch the actual file from the public URL
+      const fileResponse = await fetch(data.downloadUrl);
+      if (!fileResponse.ok) {
+        throw new Error(`Failed to download file: ${fileResponse.status} ${fileResponse.statusText}`);
+      }
+
+      const blob = await fileResponse.blob();
+      console.log('Blob size:', blob.size, 'Blob type:', blob.type);
+
+      // Create a temporary object URL for the blob
+      const blobUrl = window.URL.createObjectURL(blob);
+
       // Create a temporary link and trigger download
       const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = fileName;
+      link.href = blobUrl;
+      link.download = data.fileName || fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      toast({
-        title: "Download Started",
-        description: "Your file is being downloaded",
-      });
+
+      // Clean up the object URL
+      window.URL.revokeObjectURL(blobUrl);
+
     } catch (error) {
       console.error('Download error:', error);
       toast({
         title: "Error",
-        description: "Failed to download file",
+        description: `Failed to download file: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleView = async (fileName: string) => {
+    try {
+      const encodedFileName = encodeURIComponent(fileName);
+      const viewUrl = `${API_BASE_URL}${API_ENDPOINTS.DOWNLOAD_NOTE}`.replace(':fileName', encodedFileName);
+
+      console.log('View API URL:', viewUrl);
+
+      // Get the public URL from backend
+      const response = await fetch(viewUrl);
+      console.log('API Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Response error:', errorText);
+        throw new Error(`Failed to get view URL: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('View URL received:', data.downloadUrl);
+
+      // Fetch the actual file from the public URL
+      const fileResponse = await fetch(data.downloadUrl);
+      if (!fileResponse.ok) {
+        throw new Error(`Failed to load PDF: ${fileResponse.status} ${fileResponse.statusText}`);
+      }
+
+      const blob = await fileResponse.blob();
+      console.log('Blob size:', blob.size, 'Blob type:', blob.type);
+
+      // Create a blob URL for viewing
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      setCurrentPdfFile(data.fileName || fileName);
+      setCurrentPdfUrl(blobUrl);
+      setPdfViewerOpen(true);
+    } catch (error) {
+      console.error('View error:', error);
+      toast({
+        title: "Error",
+        description: `Failed to load PDF for viewing: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleClosePdfViewer = () => {
+    if (currentPdfUrl) {
+      window.URL.revokeObjectURL(currentPdfUrl);
+    }
+    setPdfViewerOpen(false);
+    setCurrentPdfFile('');
+    setCurrentPdfUrl('');
+  };
+
+  const handleDelete = async (noteId: string) => {
+    if (!window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        toast({
+          title: "Error",
+          description: "User not authenticated",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const deleteUrl = `${API_BASE_URL}${API_ENDPOINTS.DELETE_NOTE}`.replace(':noteId', noteId);
+      
+      const response = await fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete note');
+      }
+
+      // Remove the note from the local state
+      setNotes(prevNotes => prevNotes.filter(note => note.sl_no !== noteId));
+
+      toast({
+        title: "Success",
+        description: "Note deleted successfully",
+      });
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: "Error",
+        description: `Failed to delete note: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -438,10 +571,14 @@ export default function Dashboard() {
                 department={note.department}
                 semester={note.semester}
                 user_name={note.user_name}
+                user_id={note.user_id}
                 file_name={note.file_name}
                 created_at={note.created_at}
+                currentUserId={parseInt(localStorage.getItem('userId') || '0')}
                 onDownload={handleDownload}
+                onView={handleView}
                 onLike={handleLike}
+                onDelete={handleDelete}
                 isLiked={likedNotes[note.sl_no] || false}
               />
             </motion.div>
@@ -467,6 +604,14 @@ export default function Dashboard() {
         onOpenChange={setUploadModalOpen}
         onUpload={handleUpload}
         isUploading={isUploading}
+      />
+
+      <PDFViewerModal
+        isOpen={pdfViewerOpen}
+        onClose={handleClosePdfViewer}
+        fileName={currentPdfFile}
+        onDownload={handleDownload}
+        pdfUrl={currentPdfUrl}
       />
     </div>
   );

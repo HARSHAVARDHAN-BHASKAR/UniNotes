@@ -24,6 +24,7 @@ export const API_ENDPOINTS = {
   DOWNLOAD_NOTE: '/notes/download/:fileName',
   LIKE_NOTE: '/notes/like',
   GET_LIKE_STATUS: '/notes/like-status/:noteId/:userId',
+  DELETE_NOTE: '/notes/delete/:noteId',
 };
 
 // Helper function to build full URL

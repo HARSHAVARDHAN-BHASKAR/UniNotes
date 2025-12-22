@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Heart } from 'lucide-react';
+import { FileText, Download, Heart, Eye, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface NoteCardProps {
@@ -11,10 +11,14 @@ interface NoteCardProps {
   department: string;
   semester: string;
   user_name: string;
+  user_id: number;
   file_name: string;
   created_at: string;
+  currentUserId?: number;
   onDownload?: (fileName: string) => void;
+  onView?: (fileName: string) => void;
   onLike?: (id: string) => void;
+  onDelete?: (id: string) => void;
   isLiked?: boolean;
 }
 
@@ -25,10 +29,14 @@ export const NoteCard = ({
   department,
   semester,
   user_name,
+  user_id,
   file_name,
   created_at,
+  currentUserId,
   onDownload,
+  onView,
   onLike,
+  onDelete,
   isLiked: initialIsLiked = false 
 }: NoteCardProps) => {
   const [isLiked, setIsLiked] = useState(initialIsLiked);
@@ -42,6 +50,18 @@ export const NoteCard = ({
     e.stopPropagation();
     onDownload?.(file_name);
   };
+
+  const handleView = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onView?.(file_name);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete?.(id);
+  };
+
+  const isOwner = currentUserId === user_id;
 
   return (
     <motion.div
@@ -67,6 +87,18 @@ export const NoteCard = ({
           <div className="flex items-start justify-between">
             <FileText className="w-8 h-8 text-primary animate-glow" />
             <div className="flex items-center gap-2">
+              {isOwner && (
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={{ duration: 0.1 }}
+                  onClick={handleDelete}
+                  className="p-1 hover:bg-red-500/10 rounded-full transition-colors duration-150"
+                  title="Delete note"
+                >
+                  <Trash2 className="w-5 h-5 text-red-500" />
+                </motion.button>
+              )}
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
@@ -119,6 +151,14 @@ export const NoteCard = ({
         </CardContent>
         
         <CardFooter className="flex gap-2">
+          <Button
+            onClick={handleView}
+            variant="outline"
+            className="flex-1 border-primary/50 text-primary hover:bg-primary/10 transition-all duration-200"
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            View
+          </Button>
           <Button
             onClick={handleDownload}
             className="flex-1 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-200 transform hover:scale-105"
