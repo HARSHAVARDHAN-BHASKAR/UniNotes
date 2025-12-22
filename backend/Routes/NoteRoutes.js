@@ -13,17 +13,24 @@ router.post("/upload", upload.single("note"), notesController);
 // Get notes by branch and semester
 router.get("/", async (req, res) => {
   try {
-    const { department, semester } = req.query;
+    const { department, semester, subject } = req.query;
     
     if (!department || !semester) {
       return res.status(400).json({ error: "Department and semester are required" });
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('notes_info')
       .select('*')
       .eq('department', department)
-      .eq('semester', semester)
+      .eq('semester', semester);
+
+    // Filter by subject if provided
+    if (subject) {
+      query = query.eq('subject', subject);
+    }
+
+    const { data, error } = await query
       .order('created_at', { ascending: false });
 
     if (error) {

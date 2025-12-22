@@ -20,6 +20,22 @@ const migrateDatabase = async () => {
       console.log('Points column may already exist or RPC not available');
     }
     
+    // 1.5. Add university column to signup table if it doesn't exist
+    try {
+      const { error: alterError } = await supabase
+        .rpc('exec_sql', { sql: 'ALTER TABLE signup ADD COLUMN university VARCHAR(100);' });
+      
+      if (alterError && !alterError.message.includes('column "university" of relation "signup" already exists')) {
+        console.error('Error adding university column:', alterError);
+      } else if (alterError) {
+        console.log('University column already exists');
+      } else {
+        console.log('University column added successfully');
+      }
+    } catch (err) {
+      console.log('University column may already exist or RPC not available');
+    }
+    
     // 2. Check if note_likes table exists, create if not
     try {
       const { data: tableData, error: tableError } = await supabase
@@ -36,36 +52,26 @@ const migrateDatabase = async () => {
       console.log('note_likes table check completed');
     }
     
-    // 3. Create storage bucket for notes
+    // 3. Check storage bucket for notes
     try {
-      const { data: bucketData, error: bucketError } = await supabase
+      const { data: buckets, error: listError } = await supabase
         .storage
-        .createBucket('notes-pdfs', {
-          public: true,
-          fileSizeLimit: 52428800, // 50MB
-          allowedMimeTypes: [
-            'application/pdf',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'text/plain',
-            'application/vnd.ms-powerpoint',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'image/jpeg',
-            'image/png'
-          ]
-        });
-      
-      if (bucketError) {
-        if (bucketError.message.includes('duplicate key value')) {
-          console.log('Storage bucket "notes-pdfs" already exists');
-        } else {
-          console.error('Error creating storage bucket:', bucketError);
-        }
+        .listBuckets();
+
+      if (listError) {
+        console.error('Error listing buckets:', listError);
       } else {
-        console.log('Storage bucket "notes-pdfs" created successfully');
+        const notesBucket = buckets.find(bucket => bucket.name === 'notes-pdfs');
+        
+        if (!notesBucket) {
+          console.log('Storage bucket "notes-pdfs" does not exist.');
+          console.log('Please create it manually in the Supabase dashboard.');
+        } else {
+          console.log('Storage bucket "notes-pdfs" exists');
+        }
       }
     } catch (err) {
-      console.log('Storage bucket setup completed');
+      console.log('Storage bucket check completed');
     }
     
     console.log('Database migration completed');

@@ -17,7 +17,8 @@ router.put("/update-profile", async (req, res) => {
       .from('signup')
       .update({ 
         name: name || null, 
-        email: email || null 
+        email: email || null,
+        university: university || null
       })
       .eq('id', userId)
       .select();
@@ -65,7 +66,7 @@ router.get("/profile/:userId", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('signup')
-      .select('id, name, email, points, created_at')
+      .select('id, name, email, university, points, created_at')
       .eq('id', userId);
 
     if (error) {

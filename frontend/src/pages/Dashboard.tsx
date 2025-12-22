@@ -87,17 +87,15 @@ export default function Dashboard() {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.GET_NOTES}?department=${branch}&semester=${semester}`);
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.GET_NOTES}?department=${branch}&semester=${semester}&subject=${subject}`);
       const data = await response.json();
 
       if (response.ok) {
-        // Filter notes by subject
-        const filteredNotes = data.notes ? data.notes.filter((note: Note) => 
-          note.subject.toLowerCase().includes(subject.toLowerCase())
-        ) : [];
-        setNotes(filteredNotes);
+        // Notes are already filtered by backend
+        setNotes(data.notes || []);
         
         // Fetch like status for all notes
+        fetchLikeStatus(data.notes || []);
         fetchLikeStatus(filteredNotes);
       } else {
         console.error('Failed to fetch notes:', data.error);

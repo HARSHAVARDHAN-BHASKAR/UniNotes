@@ -13,6 +13,7 @@ const subjectsData = [
     name: 'Mathematics',
     code: 'MATH101',
     type: 'theory',
+    semesters: ['1', '2', '3', '4'],
     color: 'from-blue-500 to-cyan-500',
     icon: BookOpen
   },
@@ -21,6 +22,7 @@ const subjectsData = [
     name: 'Physics',
     code: 'PHY101',
     type: 'theory',
+    semesters: ['1'],
     color: 'from-green-500 to-emerald-500',
     icon: BookOpen
   },
@@ -29,6 +31,7 @@ const subjectsData = [
     name: 'Chemistry',
     code: 'CHEM101',
     type: 'theory',
+    semesters: ['1'],
     color: 'from-purple-500 to-pink-500',
     icon: BookOpen
   },
@@ -37,6 +40,7 @@ const subjectsData = [
     name: 'Physics Lab',
     code: 'PHY101L',
     type: 'lab',
+    semesters: ['1'],
     color: 'from-orange-500 to-red-500',
     icon: FlaskConical
   },
@@ -45,15 +49,35 @@ const subjectsData = [
     name: 'Chemistry Lab',
     code: 'CHEM101L',
     type: 'lab',
+    semesters: ['1'],
     color: 'from-yellow-500 to-orange-500',
     icon: FlaskConical
+  },
+  {
+    id: 'programming',
+    name: 'Programming',
+    code: 'CS101',
+    type: 'theory',
+    semesters: ['2'],
+    color: 'from-indigo-500 to-purple-500',
+    icon: BookOpen
+  },
+  {
+    id: 'data_structures',
+    name: 'Data Structures',
+    code: 'CS201',
+    type: 'theory',
+    semesters: ['3'],
+    color: 'from-red-500 to-pink-500',
+    icon: BookOpen
   },
   {
     id: 'english',
     name: 'English',
     code: 'ENG101',
     type: 'theory',
-    color: 'from-indigo-500 to-purple-500',
+    semesters: ['1', '2'],
+    color: 'from-teal-500 to-cyan-500',
     icon: BookOpen
   }
 ];
@@ -102,9 +126,9 @@ export default function Subjects() {
     navigate('/auth');
   };
 
-  const handleSubjectSelect = (subjectId: string) => {
-    // Store selected subject and navigate to upload page
-    localStorage.setItem('selectedSubject', subjectId);
+  const handleSubjectSelect = (subjectId: string, subjectName: string) => {
+    // Store selected subject name and navigate to dashboard
+    localStorage.setItem('selectedSubject', subjectName);
     navigate('/dashboard');
   };
 
@@ -115,9 +139,11 @@ export default function Subjects() {
 
   // Filter subjects based on semester
   const getFilteredSubjects = () => {
-    // For now, we'll return all subjects
-    // In a real implementation, you would filter based on the selected semester
-    return subjectsData;
+    if (!selectedSemester) return subjectsData;
+    
+    return subjectsData.filter(subject => 
+      subject.semesters.includes(selectedSemester)
+    );
   };
 
   const filteredSubjects = getFilteredSubjects();
@@ -214,7 +240,7 @@ export default function Subjects() {
               >
                 <Card 
                   className="glass-card border-2 border-white/10 hover:border-primary/50 transition-all duration-200 cursor-pointer group glow"
-                  onClick={() => handleSubjectSelect(subject.id)}
+                  onClick={() => handleSubjectSelect(subject.id, subject.name)}
                 >
                   <CardHeader className="text-center">
                     <div className={`w-16 h-16 bg-gradient-to-br ${subject.color} rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-200`}>
@@ -237,7 +263,7 @@ export default function Subjects() {
                       className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-200"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleSubjectSelect(subject.id);
+                        handleSubjectSelect(subject.id, subject.name);
                       }}
                     >
                       Select Subject

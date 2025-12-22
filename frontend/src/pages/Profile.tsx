@@ -50,6 +50,7 @@ export default function Profile() {
       
       if (response.ok && data.user) {
         setPoints(data.user.points || 0);
+        setUniversity(data.user.university || '');
       }
     } catch (error) {
       console.error('Error fetching user points:', error);

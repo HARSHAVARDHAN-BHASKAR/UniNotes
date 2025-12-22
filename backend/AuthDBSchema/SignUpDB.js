@@ -18,6 +18,7 @@ const createSignUpTable = async () => {
         id: INTEGER, PRIMARY KEY, AUTO_INCREMENT
         name: VARCHAR(100), NOT NULL
         email: VARCHAR(100), NOT NULL, UNIQUE
+        university: VARCHAR(100)
         password: VARCHAR(255), NOT NULL
         points: INTEGER, DEFAULT 0
         created_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
