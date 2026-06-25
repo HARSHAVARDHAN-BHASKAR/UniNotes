@@ -66,7 +66,7 @@ const migrateDatabase = async () => {
         if (!notesBucket) {
           console.log('Storage bucket "notes-pdfs" does not exist.');
           console.log('Please create it manually in the Supabase dashboard.');
-        } else {
+        } else{
           console.log('Storage bucket "notes-pdfs" exists');
         }
       }

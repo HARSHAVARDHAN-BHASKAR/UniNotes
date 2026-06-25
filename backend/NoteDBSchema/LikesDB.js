@@ -1,10 +1,6 @@
 import supabase from '../db.js';
 
 const createLikesTable = async () => {
-  // Supabase automatically creates tables via the dashboard
-  // This function ensures the table exists and has the correct structure
-  
-  // Check if the table exists by trying to select from it
   const { data, error } = await supabase
     .from('note_likes')
     .select('id')
