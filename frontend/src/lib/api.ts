@@ -1,7 +1,12 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+if (!API_BASE_URL) {
+  console.error("❌ Missing VITE_API_BASE_URL in environment variables");
+}
+
 export const buildApiUrl = (endpoint: string, params?: Record<string, string>) => {
-  let url = `${API_BASE_URL}${endpoint}`;
+  const base = API_BASE_URL?.replace(/\/$/, '');
+  let url = `${base}${endpoint}`;
 
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -19,13 +24,11 @@ export const apiCall = async (
 ) => {
   const url = buildApiUrl(endpoint, params);
 
-  const response = await fetch(url, {
+  return fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...(options.headers || {}),
     },
   });
-
-  return response;
 };
