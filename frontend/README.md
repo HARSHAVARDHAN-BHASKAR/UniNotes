@@ -50,7 +50,7 @@ npm run build
 
 ## API Integration
 
-The frontend is configured to connect to the backend API running on `http://localhost:5001`. 
+The frontend is configured to connect to the backend API running on `http://13.63.165.198:5001`. 
 
 ### Available Endpoints
 
