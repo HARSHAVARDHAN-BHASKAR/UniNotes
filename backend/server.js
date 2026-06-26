@@ -2,77 +2,129 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
-import supabase from './db.js'; // Import Supabase client
+import supabase from './db.js';
 
-import createSignUpTable from './AuthDBSchema/SignUpDB.js'; // Import the function to create the SignUp table
-import { signupController } from './AuthControllers/SignUpControllers.js'; // Import the signup controller
+// Controllers
+import { signupController } from './AuthControllers/SignUpControllers.js';
+import { loginController } from './AuthControllers/LogInControllers.js';
 
-import createLogInTable from './AuthDBSchema/LogInDB.js'; // Import the function to create the LogIn table
-import { loginController } from './AuthControllers/LogInControllers.js'; // Import the login controller
+// Routes
+import otpRoutes from './Routes/OtpRoutes.js';
+import notesRoutes from './Routes/NoteRoutes.js';
+import profileRoutes from './Routes/ProfileRoutes.js';
 
-import createEmailOtpTable from './AuthDBSchema/EmailOtpDB.js'; // Import the function to create the Email OTP table
-import createResetPasswordOtpTable from './AuthDBSchema/ResetPasswordOtpDB.js'; // Import the function to create the password reset otp table
-import otpRoutes from './Routes/OtpRoutes.js'; // Import OTP routes
-
-import createNotesInfoTable  from './NoteDBSchema/NotesDB.js'; //Import the function to create the notes_ino table
-import createLikesTable from './NoteDBSchema/LikesDB.js'; // Import the function to create the likes table
-import notesRoutes from './Routes/NoteRoutes.js'; // Import Notes routes
-
-import profileRoutes from './Routes/ProfileRoutes.js'; // Import Profile routes
-
+// DB init functions
+import createSignUpTable from './AuthDBSchema/SignUpDB.js';
+import createLogInTable from './AuthDBSchema/LogInDB.js';
+import createEmailOtpTable from './AuthDBSchema/EmailOtpDB.js';
+import createResetPasswordOtpTable from './AuthDBSchema/ResetPasswordOtpDB.js';
+import createNotesInfoTable from './NoteDBSchema/NotesDB.js';
+import createLikesTable from './NoteDBSchema/LikesDB.js';
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+
+// ----------------------
+// CORS CONFIG (FIXED)
+// ----------------------
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://uni-notes-b896.vercel.app" 
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
+
+
+// ----------------------
+// Middleware
+// ----------------------
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Define endpoints and routes
-app.post('/signup', signupController);
 
+// ----------------------
+// Health Check Route
+// ----------------------
+app.get("/", (req, res) => {
+  res.send("Backend is running successfully");
+});
+
+
+// ----------------------
+// API Routes
+// ----------------------
+app.post('/signup', signupController);
 app.post('/login', loginController);
 
 app.use('/otp', otpRoutes);
-app.use('/notes', notesRoutes);  
-app.use('/profile', profileRoutes); // Add profile routes
+app.use('/notes', notesRoutes);
+app.use('/profile', profileRoutes);
 
-// Check database connection on startup
+
+// ----------------------
+// DB Connection Check
+// ----------------------
 const checkDatabaseConnection = async () => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('signup')
       .select('id')
       .limit(1);
 
     if (error) {
-      console.log('Error connecting to Supabase database:', error);
+      console.log('Supabase connection error:', error.message);
     } else {
-      console.log('Connected to Supabase database successfully!');
+      console.log('Connected to Supabase successfully');
     }
   } catch (err) {
-    console.log('Error connecting to Supabase database:', err);
+    console.log('DB connection failed:', err.message);
   }
 };
 
-// Immediately Invoked Async Function to create tables then start server and check DB connection
-(async () => {
+
+// ----------------------
+// Safe Table Init
+// ----------------------
+const initDatabase = async () => {
   try {
     await createSignUpTable();
     await createLogInTable();
     await createEmailOtpTable();
     await createResetPasswordOtpTable();
-    await createNotesInfoTable(); 
-    await createLikesTable(); // Create likes table
+    await createNotesInfoTable();
+    await createLikesTable();
 
-    const PORT = process.env.BACKEND_PORT || 5001;
+    console.log("Database tables initialized");
+  } catch (err) {
+    console.log("Table init skipped or already exists:", err.message);
+  }
+};
+
+
+// ----------------------
+// Start Server
+// ----------------------
+const startServer = async () => {
+  try {
+    await initDatabase();
+
+    const PORT = process.env.PORT || 5001;
+
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
 
     await checkDatabaseConnection();
+
   } catch (err) {
-    console.log('Error during startup:', err);
+    console.log("Server startup error:", err.message);
   }
-})();
+};
+
+startServer();
